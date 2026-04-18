@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="考古影像采集" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <title>考古勘探影像采集系统</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --line: #e6e8ee;
+      --text: #1f2937;
+      --sub: #6b7280;
+      --pri: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --amber: #d97706;
+      --shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+    body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 14px; }
+    .hero { position: sticky; top: 0; z-index: 9; background: rgba(245,247,251,.92); backdrop-filter: blur(10px); padding: 12px 0 10px; }
+    .title { font-size: 24px; font-weight: 800; margin: 0 0 6px; }
+    .subtitle { color: var(--sub); font-size: 13px; line-height: 1.45; margin-bottom: 12px; }
+    .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn, button { border: none; background: var(--pri); color: #fff; border-radius: 14px; padding: 12px 14px; font-size: 15px; font-weight: 700; box-shadow: var(--shadow); cursor: pointer; }
+    .btn.secondary { background: #fff; color: var(--text); border: 1px solid var(--line); box-shadow: none; }
+    .btn.green { background: var(--green); }
+    .btn.red { background: var(--red); }
+    .btn.amber { background: var(--amber); }
+    .btn.small { padding: 8px 10px; font-size: 13px; border-radius: 10px; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .section { margin-top: 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+    .project { margin-top: 14px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .space { justify-content: space-between; }
+    input[type="text"] { width: 100%; border: 1px solid var(--line); outline: none; border-radius: 12px; padding: 11px 12px; font-size: 15px; background: #fff; }
+    input[type="text"]:focus { border-color: #93c5fd; box-shadow: 0 0 0 4px rgba(37,99,235,.08); }
+    .muted { color: var(--sub); font-size: 12px; }
+    .category { border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-top: 12px; background: #fbfcff; }
+    .subcategory { border: 1px dashed #cfd6e4; border-radius: 14px; padding: 10px; margin-top: 10px; background: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (min-width: 700px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+    .image-card { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+    .thumb { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; background: #eef2f7; }
+    .image-meta { padding: 8px; display: grid; gap: 7px; }
+    .counter { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; background: #eef4ff; color: #2447a5; font-size: 12px; font-weight: 700; }
+    .pill { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 999px; background: #f3f4f6; color: #374151; font-size: 12px; }
+    .empty { padding: 18px; text-align: center; color: var(--sub); border: 1px dashed #cad2e0; border-radius: 16px; background: rgba(255,255,255,.6); }
+    .footer-note { color: var(--sub); font-size: 12px; text-align: center; padding: 18px 0 28px; }
+    .project-actions, .cat-actions, .sub-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .install-tip { margin-top: 10px; font-size: 12px; color: #1d4ed8; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="title">考古勘探影像采集系统</div>
+      <div class="subtitle">在线网址版 / PWA：支持移动端拍照、批量导入、编辑图片名称、离线缓存访问、按项目/分类/子类导出 ZIP 压缩包。</div>
+      <div class="toolbar">
+        <button id="addTemplateProjectBtn" class="btn green">新建标准项目</button>
+        <button id="addProjectBtn" class="btn">新建空项目</button>
+        <button id="exportAllBtn" class="btn secondary">导出全部项目 ZIP</button>
+        <button id="clearAllBtn" class="btn secondary">清空全部数据</button>
+      </div>
+      <div class="install-tip" id="installTip">提示：发布到 HTTPS 网站后，可添加到手机主屏幕，像 App 一样使用。</div>
+    </div>
+
+    <div class="section">
+      <div id="app"></div>
+    </div>
+
+    <div class="footer-note">
+      说明：数据保存在当前浏览器本地数据库（IndexedDB）中；更换浏览器或清理浏览器数据后，本地记录会丢失，请及时导出 ZIP 归档。
+    </div>
+  </div>
+
+<script>
+(() => {
+  const DB_NAME = 'archaeology_online_image_app_v1';
+  const STORE_NAME = 'kv';
+  const STATE_KEY = 'app_state';
+  let db = null;
+  let state = { projects: [] };
+  let deferredPrompt = null;
+
+  const appEl = document.getElementById('app');
+  const addProjectBtn = document.getElementById('addProjectBtn');
+  const addTemplateProjectBtn = document.getElementById('addTemplateProjectBtn');
+  const exportAllBtn = document.getElementById('exportAllBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+  const installTip = document.getElementById('installTip');
+
+  function uid() {
+    return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id_' + Date.now() + '_' + Math.random().toString(16).slice(2);
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function extFromMime(type) {
+    const map = {
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/png': '.png',
+      'image/webp': '.webp',
+      'image/heic': '.heic',
+      'image/heif': '.heif',
+      'image/gif': '.gif',
+      'image/bmp': '.bmp',
+      'image/tiff': '.tif'
+    };
+    return map[type] || '';
+  }
+
+  function ensureImageName(name, type, fallback = '图片') {
+    let n = String(name || '').trim();
+    if (!n) n = fallback;
+    const hasExt = /\.[A-Za-z0-9]{2,8}$/.test(n);
+    if (!hasExt) n += extFromMime(type) || '.jpg';
+    return n;
+  }
+
+  function createObjectUrlForState() {
+    state.projects.forEach(project => {
+      project.categories.forEach(category => {
+        category.subcategories.forEach(sub => {
+          sub.images.forEach(img => {
+            if (img.url) URL.revokeObjectURL(img.url);
+            img.url = URL.createObjectURL(img.blob);
+          });
+        });
+      });
+    });
+  }
+
+  function revokeAllUrls() {
+    state.projects.forEach(project => {
+      project.categories.forEach(category => {
+        category.subcategories.forEach(sub => {
+          sub.images.forEach(img => {
+            if (img.url) URL.revokeObjectURL(img.url);
+          });
+        });
+      });
+    });
+  }
+
+  function openDb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = (e) => {
+        const dbx = e.target.result;
+        if (!dbx.objectStoreNames.contains(STORE_NAME)) dbx.createObjectStore(STORE_NAME);
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function idbGet(key) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function idbSet(key, value) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(value, key);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function loadState() {
+    db = await openDb();
+    const saved = await idbGet(STATE_KEY);
+    state = saved && saved.projects ? saved : { projects: [] };
+    createObjectUrlForState();
+  }
+
+  let saveTimer = null;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveState, 250);
+  }
+
+  async function saveState() {
+    try {
+      await idbSet(STATE_KEY, state);
+    } catch (e) {
+      console.error('保存失败', e);
+      alert('本地保存失败，请尽快导出 ZIP 备份。');
+    }
+  }
+
+  function standardProjectTemplate(name) {
+    return {
+      id: uid(),
+      name: name || ('考古项目_' + new Date().toLocaleDateString('zh-CN').replaceAll('/', '-')),
+      categories: [
+        { id: uid(), name: '无人机航拍', subcategories: [
+          { id: uid(), name: '进场前', images: [] },
+          { id: uid(), name: '中期', images: [] },
+          { id: uid(), name: '后期', images: [] }
+        ]},
+        { id: uid(), name: '探孔图', subcategories: [ { id: uid(), name: '默认', images: [] } ] },
+        { id: uid(), name: '工作照片', subcategories: [ { id: uid(), name: '默认', images: [] } ] }
+      ]
+    };
+  }
+
+  function emptyProject(name) {
+    return { id: uid(), name: name || '未命名项目', categories: [] };
+  }
+
+  function findProject(projectId) { return state.projects.find(p => p.id === projectId); }
+  function findCategory(projectId, categoryId) {
+    const project = findProject(projectId); if (!project) return null;
+    return project.categories.find(c => c.id === categoryId);
+  }
+  function findSubcategory(projectId, categoryId, subId) {
+    const category = findCategory(projectId, categoryId); if (!category) return null;
+    return category.subcategories.find(s => s.id === subId);
+  }
+  function totalImagesInProject(project) {
+    return project.categories.reduce((sum, c) => sum + c.subcategories.reduce((s, sub) => s + sub.images.length, 0), 0);
+  }
+  function bytesToSize(bytes) {
+    if (!bytes && bytes !== 0) return '-';
+    const units = ['B', 'KB', 'MB', 'GB']; let i = 0, n = bytes;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return (i === 0 ? n : n.toFixed(1)) + ' ' + units[i];
+  }
+
+  function render() {
+    if (!state.projects.length) {
+      appEl.innerHTML = '<div class="empty">暂无项目。可点击上方“新建标准项目”快速开始，也可新建空项目后自定义分类。</div>';
+      return;
+    }
+
+    appEl.innerHTML = state.projects.map(project => {
+      const imgCount = totalImagesInProject(project);
+      return `
+        <div class="card project" data-project-id="${project.id}">
+          <div class="row space">
+            <div style="flex:1;min-width:220px;">
+              <input type="text" value="${escapeHtml(project.name)}" data-action="rename-project" data-project-id="${project.id}" placeholder="项目名称" />
+              <div class="row" style="margin-top:8px;">
+                <span class="counter">共 ${imgCount} 张</span>
+                <span class="pill">分类 ${project.categories.length} 个</span>
+              </div>
+            </div>
+            <div class="project-actions">
+              <button class="btn small green" data-action="add-category" data-project-id="${project.id}">新增分类</button>
+              <button class="btn small secondary" data-action="export-project" data-project-id="${project.id}">导出本项目</button>
+              <button class="btn small red" data-action="delete-project" data-project-id="${project.id}">删除项目</button>
+            </div>
+          </div>
+
+          ${project.categories.length ? project.categories.map(category => `
+            <div class="category" data-category-id="${category.id}">
+              <div class="row space">
+                <div style="flex:1;min-width:200px;">
+                  <input type="text" value="${escapeHtml(category.name)}" data-action="rename-category" data-project-id="${project.id}" data-category-id="${category.id}" placeholder="分类名称，如：无人机航拍" />
+                </div>
+                <div class="cat-actions">
+                  <button class="btn small green" data-action="add-subcategory" data-project-id="${project.id}" data-category-id="${category.id}">新增子类</button>
+                  <button class="btn small red" data-action="delete-category" data-project-id="${project.id}" data-category-id="${category.id}">删除分类</button>
+                </div>
+              </div>
+
+              ${(category.subcategories || []).map(sub => `
+                <div class="subcategory" data-subcategory-id="${sub.id}">
+                  <div class="row space">
+                    <div style="flex:1;min-width:180px;">
+                      <input type="text" value="${escapeHtml(sub.name)}" data-action="rename-subcategory" data-project-id="${project.id}" data-category-id="${category.id}" data-subcategory-id="${sub.id}" placeholder="子类名称，如：进场前 / 探孔 1" />
+                    </div>
+                    <div class="sub-actions">
+                      <button class="btn small secondary" data-action="import-images" data-project-id="${project.id}" data-category-id="${category.id}" data-subcategory-id="${sub.id}">导入图片</button>
+                      <button class="btn small" data-action="capture-images" data-project-id="${project.id}" data-category-id="${category.id}" data-subcategory-id="${sub.id}">拍照</button>
+                      <button class="btn small amber" data-action="export-subcategory" data-project-id="${project.id}" data-category-id="${category.id}" data-subcategory-id="${sub.id}">导出子类</button>
+                      <button class="btn small red" data-action="delete-subcategory" data-project-id="${project.id}" data-category-id="${category.id}" data-subcategory-id="${sub.id}">删除子类</button>
+                    </div>
+                  </div>
+
+                  ${sub.images.length ? `
+                    <div class="grid" style="margin-top:10px;">
+                      ${sub.images.map(img => `
+                        <div class="image-card" data-image-id="${img.id}">
+                          <a href="${img.url}" target="_blank" rel="noreferrer">
+                            <img class="thumb" src="${img.url}" alt="${escapeHtml(img.name)}" />
+                          </a>
+                          <div class="image-meta">
+                            <input type="text" value="${escapeHtml(img.name)}" data-action="rename-image" data-project-id="${project.id}" data-category-id="${category.id}" data-subcategory-id="${sub.id}" data-image-id="${img.id}" placeholder="图片名称" />
+                            <div class="row space">
+                              <span class="muted">${bytesToSize(img.blob?.size || 0)}</span>
+                              <button class="btn small red" data-action="delete-image" data-project-id="${project.id}" data-category-id="${category.id}" data-subcategory-id="${sub.id}" data-image-id="${img.id}">删除</button>
+                            </div>
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : '<div class="empty" style="margin-top:10px;">该子类暂无图片。可导入外部照片或直接调用手机相机拍摄。</div>'}
+                </div>
+              `).join('')}
+            </div>
+          `).join('') : '<div class="empty" style="margin-top:12px;">该项目暂无分类。点击“新增分类”开始整理。</div>'}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function addFilesToSubcategory(projectId, categoryId, subId, files) {
+    const sub = findSubcategory(projectId, categoryId, subId);
+    if (!sub || !files || !files.length) return;
+    const list = Array.from(files).filter(f => /^image\//.test(f.type));
+    if (!list.length) { alert('未选择图片文件。'); return; }
+    for (const file of list) {
+      const blob = file.slice(0, file.size, file.type);
+      sub.images.push({ id: uid(), name: ensureImageName(file.name || '图片', file.type, '图片'), blob, createdAt: Date.now(), url: URL.createObjectURL(blob) });
+    }
+    render(); scheduleSave();
+  }
+
+  function createFileInput({ capture = false, onDone }) {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*'; input.multiple = !capture;
+    if (capture) input.setAttribute('capture', 'environment');
+    input.style.display = 'none';
+    input.addEventListener('change', async () => { try { await onDone(input.files); } finally { input.remove(); } });
+    document.body.appendChild(input); input.click();
+  }
+
+  function sanitizePathSegment(name, fallback) {
+    const n = String(name || '').trim() || fallback;
+    return n.replace(/[\\/:*?"<>|\u0000-\u001F]/g, '_').replace(/\s+/g, ' ').trim();
+  }
+  function dateToDos(date = new Date()) {
+    const year = Math.max(1980, date.getFullYear()); const month = date.getMonth() + 1; const day = date.getDate();
+    const hours = date.getHours(); const mins = date.getMinutes(); const secs = Math.floor(date.getSeconds() / 2);
+    return { time: (hours << 11) | (mins << 5) | secs, date: ((year - 1980) << 9) | (month << 5) | day };
+  }
+  const crcTable = (() => {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); table[n] = c >>> 0; }
+    return table;
+  })();
+  function crc32(bytes) { let c = 0 ^ (-1); for (let i = 0; i < bytes.length; i++) c = (c >>> 8) ^ crcTable[(c ^ bytes[i]) & 0xFF]; return (c ^ (-1)) >>> 0; }
+  function u16(v) { const a = new Uint8Array(2); new DataView(a.buffer).setUint16(0, v, true); return a; }
+  function u32(v) { const a = new Uint8Array(4); new DataView(a.buffer).setUint32(0, v >>> 0, true); return a; }
+  function concatBytes(parts) { const len = parts.reduce((s, p) => s + p.length, 0); const out = new Uint8Array(len); let off = 0; for (const p of parts) { out.set(p, off); off += p.length; } return out; }
+  async function buildZip(entries) {
+    const encoder = new TextEncoder(); let localParts = []; let centralParts = []; let offset = 0; const nowDos = dateToDos(new Date());
+    for (const entry of entries) {
+      const nameBytes = encoder.encode(entry.path); const dataBytes = new Uint8Array(await entry.blob.arrayBuffer()); const crc = crc32(dataBytes); const size = dataBytes.length; const flagUtf8 = 0x0800;
+      const localHeader = concatBytes([u32(0x04034b50),u16(20),u16(flagUtf8),u16(0),u16(nowDos.time),u16(nowDos.date),u32(crc),u32(size),u32(size),u16(nameBytes.length),u16(0),nameBytes]);
+      localParts.push(localHeader, dataBytes);
+      const centralHeader = concatBytes([u32(0x02014b50),u16(20),u16(20),u16(flagUtf8),u16(0),u16(nowDos.time),u16(nowDos.date),u32(crc),u32(size),u32(size),u16(nameBytes.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),nameBytes]);
+      centralParts.push(centralHeader); offset += localHeader.length + dataBytes.length;
+    }
+    const centralDir = concatBytes(centralParts);
+    const end = concatBytes([u32(0x06054b50),u16(0),u16(0),u16(entries.length),u16(entries.length),u32(centralDir.length),u32(offset),u16(0)]);
+    return new Blob([...localParts, centralDir, end], { type: 'application/zip' });
+  }
+  async function collectEntriesFromProject(project) {
+    const entries = [];
+    for (const category of project.categories) {
+      for (const sub of category.subcategories) {
+        for (let i = 0; i < sub.images.length; i++) {
+          const img = sub.images[i];
+          const fileName = ensureImageName(img.name, img.blob.type, '图片_' + (i + 1));
+          entries.push({ path: `${sanitizePathSegment(project.name, '项目')}/${sanitizePathSegment(category.name, '分类')}/${sanitizePathSegment(sub.name, '子类')}/${sanitizePathSegment(fileName, '图片_' + (i + 1))}`, blob: img.blob });
+        }
+      }
+    }
+    return entries;
+  }
+  async function collectEntriesFromSubcategory(project, category, sub) {
+    const entries = [];
+    for (let i = 0; i < sub.images.length; i++) {
+      const img = sub.images[i];
+      const fileName = ensureImageName(img.name, img.blob.type, '图片_' + (i + 1));
+      entries.push({ path: `${sanitizePathSegment(project.name, '项目')}/${sanitizePathSegment(category.name, '分类')}/${sanitizePathSegment(sub.name, '子类')}/${sanitizePathSegment(fileName, '图片_' + (i + 1))}`, blob: img.blob });
+    }
+    return entries;
+  }
+  function downloadBlob(blob, fileName) {
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+  async function exportProjectZip(projectId) {
+    const project = findProject(projectId); if (!project) return; const entries = await collectEntriesFromProject(project); if (!entries.length) { alert('该项目暂无图片。'); return; }
+    const zipBlob = await buildZip(entries); downloadBlob(zipBlob, `${sanitizePathSegment(project.name, '项目')}.zip`);
+  }
+  async function exportSubcategoryZip(projectId, categoryId, subId) {
+    const project = findProject(projectId); const category = findCategory(projectId, categoryId); const sub = findSubcategory(projectId, categoryId, subId); if (!project || !category || !sub) return;
+    const entries = await collectEntriesFromSubcategory(project, category, sub); if (!entries.length) { alert('该子类暂无图片。'); return; }
+    const zipBlob = await buildZip(entries); downloadBlob(zipBlob, `${sanitizePathSegment(project.name, '项目')}_${sanitizePathSegment(category.name, '分类')}_${sanitizePathSegment(sub.name, '子类')}.zip`);
+  }
+  async function exportAllZip() {
+    const entries = [];
+    for (const project of state.projects) entries.push(...await collectEntriesFromProject(project));
+    if (!entries.length) { alert('暂无可导出的图片。'); return; }
+    const zipBlob = await buildZip(entries); downloadBlob(zipBlob, '考古勘探全部项目.zip');
+  }
+
+  addProjectBtn.addEventListener('click', () => {
+    const name = prompt('请输入项目名称', '未命名项目'); if (name === null) return;
+    state.projects.unshift(emptyProject(name.trim() || '未命名项目')); render(); scheduleSave();
+  });
+  addTemplateProjectBtn.addEventListener('click', () => {
+    const name = prompt('请输入项目名称', '考古项目'); if (name === null) return;
+    state.projects.unshift(standardProjectTemplate(name.trim() || '考古项目')); render(); scheduleSave();
+  });
+  exportAllBtn.addEventListener('click', exportAllZip);
+  clearAllBtn.addEventListener('click', async () => {
+    if (!confirm('确定清空全部项目、本地图片及名称吗？此操作不可恢复，建议先导出 ZIP。')) return;
+    revokeAllUrls(); state = { projects: [] }; render(); await saveState();
+  });
+
+  appEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action]'); if (!btn) return;
+    const action = btn.dataset.action, projectId = btn.dataset.projectId, categoryId = btn.dataset.categoryId, subId = btn.dataset.subcategoryId, imageId = btn.dataset.imageId;
+
+    if (action === 'add-category') {
+      const name = prompt('请输入分类名称', '新分类'); if (name === null) return;
+      const project = findProject(projectId); if (!project) return; project.categories.push({ id: uid(), name: name.trim() || '新分类', subcategories: [] }); render(); scheduleSave(); return;
+    }
+    if (action === 'add-subcategory') {
+      const name = prompt('请输入子类名称', '默认'); if (name === null) return;
+      const category = findCategory(projectId, categoryId); if (!category) return; category.subcategories.push({ id: uid(), name: name.trim() || '默认', images: [] }); render(); scheduleSave(); return;
+    }
+    if (action === 'delete-project') {
+      const project = findProject(projectId); if (!project) return; if (!confirm(`确定删除项目“${project.name}”及其全部图片吗？`)) return;
+      project.categories.forEach(c => c.subcategories.forEach(s => s.images.forEach(img => img.url && URL.revokeObjectURL(img.url)))); state.projects = state.projects.filter(p => p.id !== projectId); render(); scheduleSave(); return;
+    }
+    if (action === 'delete-category') {
+      const project = findProject(projectId); const category = findCategory(projectId, categoryId); if (!project || !category) return; if (!confirm(`确定删除分类“${category.name}”及其全部图片吗？`)) return;
+      category.subcategories.forEach(s => s.images.forEach(img => img.url && URL.revokeObjectURL(img.url))); project.categories = project.categories.filter(c => c.id !== categoryId); render(); scheduleSave(); return;
+    }
+    if (action === 'delete-subcategory') {
+      const category = findCategory(projectId, categoryId); const sub = findSubcategory(projectId, categoryId, subId); if (!category || !sub) return; if (!confirm(`确定删除子类“${sub.name}”及其全部图片吗？`)) return;
+      sub.images.forEach(img => img.url && URL.revokeObjectURL(img.url)); category.subcategories = category.subcategories.filter(s => s.id !== subId); render(); scheduleSave(); return;
+    }
+    if (action === 'delete-image') {
+      const sub = findSubcategory(projectId, categoryId, subId); if (!sub) return; const idx = sub.images.findIndex(i => i.id === imageId); if (idx === -1) return; if (sub.images[idx].url) URL.revokeObjectURL(sub.images[idx].url); sub.images.splice(idx, 1); render(); scheduleSave(); return;
+    }
+    if (action === 'import-images') { createFileInput({ capture: false, onDone: (files) => addFilesToSubcategory(projectId, categoryId, subId, files) }); return; }
+    if (action === 'capture-images') { createFileInput({ capture: true, onDone: (files) => addFilesToSubcategory(projectId, categoryId, subId, files) }); return; }
+    if (action === 'export-project') { await exportProjectZip(projectId); return; }
+    if (action === 'export-subcategory') { await exportSubcategoryZip(projectId, categoryId, subId); return; }
+  });
+
+  appEl.addEventListener('input', (e) => {
+    const el = e.target, action = el.dataset.action; if (!action) return;
+    const projectId = el.dataset.projectId, categoryId = el.dataset.categoryId, subId = el.dataset.subcategoryId, imageId = el.dataset.imageId, value = (el.value || '').trim();
+    if (action === 'rename-project') { const p = findProject(projectId); if (p) p.name = value || '未命名项目'; }
+    if (action === 'rename-category') { const c = findCategory(projectId, categoryId); if (c) c.name = value || '未命名分类'; }
+    if (action === 'rename-subcategory') { const s = findSubcategory(projectId, categoryId, subId); if (s) s.name = value || '默认'; }
+    if (action === 'rename-image') { const s = findSubcategory(projectId, categoryId, subId); if (s) { const img = s.images.find(i => i.id === imageId); if (img) img.name = value || '图片'; } }
+    scheduleSave();
+  });
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); deferredPrompt = e;
+    installTip.innerHTML = '此网站支持安装到主屏幕。安卓可在浏览器菜单中选择“安装应用/添加到主屏幕”；iPhone 可在 Safari 共享菜单中选择“添加到主屏幕”。';
+  });
+
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('./sw.js').catch(console.error);
+  }
+
+  window.addEventListener('beforeunload', saveState);
+  loadState().then(render).catch(err => {
+    console.error(err);
+    appEl.innerHTML = '<div class="empty">初始化失败：浏览器可能不支持本地数据库（IndexedDB）或当前环境限制较多。建议换用 Chrome、Edge、Safari 最新版再试。</div>';
+  });
+})();
+</script>
+</body>
+</html>
